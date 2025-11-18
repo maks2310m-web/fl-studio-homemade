@@ -1,0 +1,87 @@
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #111;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+/*Размер сетки в перспективе, позже добавлю изменение ее размера и привязку к размере ноты*/
+:root {
+  --step-w: 40px;
+  --row-h: 25px;
+  --cols: 32;
+  --rows: 21;
+}
+
+
+#controls {
+  margin: 10px;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  background-color: #3aa3ff;
+}
+
+button img {
+  width: 40px;
+  height: 40px;
+}
+
+#piano-roll {
+  position: relative;
+  margin: 20px auto;
+  width: calc(var(--step-w) * var(--cols));
+  height: calc(var(--row-h) * var(--rows));
+  border: 1px solid #444;
+  background:
+    linear-gradient(transparent calc(var(--row-h) - 1px), rgba(255,255,255,0.05) 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: var(--step-w) var(--row-h);
+  overflow: hidden;
+}
+
+#cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--step-w);
+  background: rgba(255, 255, 0, 0.1);
+  pointer-events: none;
+}
+
+.note {
+  position: absolute;
+  height: calc(var(--row-h) - 4px);
+  width: calc(var(--row-h) - 2px);
+
+  background: #a5d6af;
+  cursor: grab;
+}
+
+.note.playing {
+  background: #ffa600b6;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: ew-resize;
+}
+
+#timer{
+    width: 100px;
+    height: 50px;
+    border: 2px solid black;
+    margin: 10px;
+    align-items: center;
+    font-size: 23px;
+}

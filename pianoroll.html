@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Piano Roll</title>
+  <link rel="stylesheet" href="pianoroll.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="controls">
+        <div id="timer"><p>0</p></div>
+        <button id="play" class="btn" title="Play"><img id="playIcon" src="img/icons8-circled-play-button-100.png" alt="Play"></button>
+        <button id="stop" class="btn" title="Stop"><img src="img/icons8-stop-circled-100.png" alt="Stop"></button>
+      </div>
+    </header>
+
+    <main class="main-area">
+      <div id="piano-roll" aria-label="Piano roll container">
+        <div id="grid" aria-label="Grid (click empty space to add note)"></div>
+        <div id="cursor" class="cursor" style="left:0"></div>
+      </div>
+    </main>
+<br><br>
+    <footer class="hint">
+      Click empty cell to add note · Drag to move · Drag right edge to resize · Double-click to delete
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
