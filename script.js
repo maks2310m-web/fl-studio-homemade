@@ -12,6 +12,10 @@ const ROWS = 28; // How much rows(notes), can be only a number divided by 7.
 const grid     = document.getElementById("grid");
 const cursor   = document.getElementById("cursor");
 
+//Sound elements
+const MetronomeSound = new Audio('audio/metronome-tick.wav')
+
+
 
 const BPMInput = document.getElementById("BPM");
 let BPM = Number(BPMInput.value);
@@ -36,7 +40,6 @@ function getStepMs() {
 }
 
 function startPlayBack() {
-  const stepMs = getStepMs();
 
   currentStep = 0;
   moveCursorToStep(currentStep);
@@ -66,7 +69,7 @@ function startPlayBack() {
       primaryBeat.play();
     }
 
-  }, stepMs);
+  }, getStepMs());
 }
 
 function stopPlayBack() {
@@ -227,21 +230,39 @@ function pauseStopWatch() {
 
 }
 
+console.log("Grid size:", grid.style.width, grid.style.height);
 
 
-let soundInterval;
 
-let startStopMetronome = playBtn.addEventListener('click', () => {
-  soundInterval = calculateSoundInterval();
-    startMetronome(soundInterval);
-})
+let Metronome = false
 
-function startMetronome(si) {
-    timerId = setInterval(() => {
-        primaryBeat.play();
-        primaryBeat.currentTime = 0;
-    },si);
-}
+  let soundInterval = beatMs;
+
+  let startStopMetronome = playBtn.addEventListener('click', () => {
+    soundInterval = calculateSoundInterval();
+      startMetronome(soundInterval);
+  })
+
+  const MetronomeButton = document.getElementById("metronome")
+  let MetronomeState = false;
+  let MetronomeSwitch = MetronomeButton.addEventListener('click', () => {
+    if (MetronomeState == false){
+      MetronomeState = true;
+      MetronomeSound.play();
+      }
+    })
+
+
+  function startMetronome(si) {
+      timerId = setInterval(() => {
+          getStepMs()
+          MetronomeSound.play();
+          MetronomeSound.currentTime = 0;
+      },si);
+      
+  }
+
+ 
 
 let calculateSoundInterval = () => {
     return (60/BPM)*1000;
