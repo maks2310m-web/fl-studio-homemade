@@ -227,7 +227,6 @@ function pauseStopWatch() {
 
 }
 
-console.log("Grid size:", grid.style.width, grid.style.height);
 
 
 let soundInterval;
