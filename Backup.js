@@ -1,11 +1,12 @@
 //Global variables 
 
-const STEP_W = 40; // Grid size (PX)
-const ROW_H = 20; //Grid Height
+const STEP_W = 30; // Grid size (PX)
+const ROW_H = 18; //Grid Height
 const STEPS_PER_BEAT = 4;
 const STEPS = 40; //How much steps, increases time.
 const ROWS = 28; // How much rows(notes), can be only a number divided by 7.
-
+const beatMs = 60000 / BPM;
+const stepMs = beatMs / STEPS_PER_BEAT;
 
 //HTML DOM elements
 
@@ -26,58 +27,6 @@ let isPlaying = false;
 let currentStep = 0;
 let playInterval = null;
 
-function moveCursorToStep(step) {
-  cursor.style.left = (step * STEP_W) + "px";
-}
-
-function getStepMs() {
-  const beatMs = 60000 / BPM;
-  return beatMs / STEPS_PER_BEAT;
-}
-
-function startPlayBack() {
-  const stepMs = getStepMs();
-
-  currentStep = 0;
-  moveCursorToStep(currentStep);
-
-  // если вдруг уже был запущен интервал – чистим его
-  if (playInterval) {
-    clearInterval(playInterval);
-  }
-
-  playInterval = setInterval(() => {
-    currentStep++;
-
-    // если дошли до конца — стоп
-    if (currentStep >= STEPS) {
-      isPlaying = false;
-      pauseStopWatch();
-      stopPlayBack();
-      return;
-    }
-
-    // двигаем курсор
-    moveCursorToStep(currentStep);
-
-    // играем звук метронома, если есть
-    if (typeof primaryBeat !== "undefined") {
-      primaryBeat.currentTime = 0;
-      primaryBeat.play();
-    }
-
-  }, stepMs);
-}
-
-function stopPlayBack() {
-  if (playInterval) {
-    clearInterval(playInterval);
-    playInterval = null;
-  }
-}
-
-
-
 
 // Grid Size
 grid.style.width = `${STEP_W * STEPS}px`;
@@ -93,16 +42,14 @@ const playIcon = document.getElementById("playIcon");
 playBtn.addEventListener("click", togglePlay);
 // all events on play, i can easily add more of them if needed later
 function onPlay() {
-  isPlaying = true;
-  startPlayBack();
+  StartCursor()
   startStopWatch(true)
 
 }
 // all events on pause, i can easily add more of them if needed later
 function onPause() {
-  isPlaying = false;
 pauseStopWatch();
-stopPlayBack();
+
 }
 
 function togglePlay() {

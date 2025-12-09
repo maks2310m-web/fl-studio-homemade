@@ -2,32 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mini Piano Roll</title>
   <link rel="stylesheet" href="pianoroll.css" />
-</head>
+</head> 
 <body>
-  <div class="wrap">
-    <header>
-      <div class="controls">
-        <div id="timer"><p>0</p></div>
-        <button id="play" class="btn" title="Play"><img id="playIcon" src="img/icons8-circled-play-button-100.png" alt="Play"></button>
-        <button id="stop" class="btn" title="Stop"><img src="img/icons8-stop-circled-100.png" alt="Stop"></button>
-      </div>
-    </header>
 
-    <main class="main-area">
-      <div id="piano-roll" aria-label="Piano roll container">
-        <div id="grid" aria-label="Grid (click empty space to add note)"></div>
-        <div id="cursor" class="cursor" style="left:0"></div>
-      </div>
-    </main>
-<br><br>
-    <footer class="hint">
-      Click empty cell to add note · Drag to move · Drag right edge to resize · Double-click to delete
-    </footer>
+<div id="app">
+  <div id="options-panel">
+    <span>Options</span>
   </div>
 
-  <script src="script.js"></script>
+<header id="header">
+  
+  <div class="firstBlock">
+
+  <div class="main-controls">
+    <button id="play" title="Play"><img id="playIcon" src="img/play button.svg" alt="Play"></img></button>
+    <button id="stop" title="Stop"><img src="img/StopIcon.png" alt="Stop"></img></button>
+    <label class="bpm-label">
+    <input id="BPM" type="number" value="125" step="1" placeholder="BPM">
+    </label>
+  </div>
+
+        
+<div class="secondary-controls">
+
+<button id="metronome" title="Metronome"><img src="img/MetronomeWhite.png" alt=""></button>  
+<div id="stopWatch"><span>00:00:00</span></div>
+
+</div>
+</div>
+<div class="secondBlock">
+
+
+</div>
+</header>
+<label id="fileBrowser">
+    <span>Velg Fil</span>
+    <input type="file" accept="audio/*" id="audio">
+  </label>
+
+<main id="workspace">
+<div id="piano-roll" aria-label="Piano roll container">
+    <div id="grid">
+          <div id="cursor" class="cursor"></div>
+    </div>
+    <footer class="hint">Click empty cell to add note · Drag to move · Drag right edge to resize · Double-click to delete</footer>
+
+</div>
+
+</main>
+            
+
+</div>
+<script src="script.js"></script>
+
 </body>
 </html>
+<!--
+Kilder - 
+https://www.youtube.com/watch?v=FK0867WUbvE
+https://codepel.com/vanilla-javascript/javascript-knob-slider/
+https://stackoverflow.com/questions/75632384/making-a-javascript-metronome  
+-->

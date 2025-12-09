@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Круглый input</title>
+<style>
+  /* Стили для круглого input */
+  .round-input {
+    width: 50px;              /* ширина */
+    height: 50px;             /* высота */
+    border-radius: 50%;       /* делает форму круглой */
+    border: 2px solid #333;   /* рамка */
+    text-align: center;       /* выравнивание текста */
+    font-size: 16px;          /* размер шрифта */
+    outline: none;            /* убираем обводку при фокусе */
+    transition: 0.3s;         /* плавные эффекты */
+  }
+
+  /* Эффект при фокусе */
+  .round-input:focus {
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+</style>
+</head>
+<body>
+
+<!-- Пример круглого input -->
+<input type="text" class="round-input" maxlength="2" placeholder="№">
+
+</body>
+</html>
