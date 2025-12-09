@@ -1,6 +1,6 @@
 :root {
-  --step-w: 40px;
-  --row-h: 20px;
+  --step-width: 40px;
+  --row-height: 20px;
 
   background: rgb(107, 117, 123);
 }
@@ -249,24 +249,24 @@ input#BPM {
 
   border: 2px #3a4c57 solid;
   background:
-      linear-gradient(transparent calc(var(--row-h) - 1px), rgba(255,255,255,.05) 1px),
+      linear-gradient(transparent calc(var(--row-height) - 1px), rgba(255,255,255,.05) 1px),
       linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-  background-size: var(--step-w) var(--row-h);
+  background-size: var(--step-width) var(--row-height);
 }
 
 #cursor {
   position: absolute;
   top: 0;
   height: 100%;
-  width: var(--step-w);
+  width: var(--step-width);
   background: rgba(255, 255, 0, 0.1);
   pointer-events: none;
 }
 
 .note {
   position: absolute;
-  width:  calc(var(--step-w) - 2px);  
-  height: calc(var(--row-h) - 2px);  
+  width:  calc(var(--step-width) - 2px);  
+  height: calc(var(--row-height) - 2px);  
 
   background: #cafdd4;
   cursor: grab;

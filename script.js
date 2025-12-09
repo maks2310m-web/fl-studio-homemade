@@ -1,11 +1,10 @@
 //Global variables 
 
-const STEP_W = 40; // Grid size (PX)
-const ROW_H = 20; //Grid Height
+const STEP_WIDTH = 40; // Grid size (PX)
+const ROW_HEIGHT = 20; //Grid Height
 const STEPS_PER_BEAT = 4;
 const STEPS = 40; //How much steps, increases time.
 const ROWS = 28; // How much rows(notes), can be only a number divided by 7.
-
 
 //HTML DOM elements
 
@@ -14,8 +13,6 @@ const cursor   = document.getElementById("cursor");
 
 //Sound elements
 const MetronomeSound = new Audio('audio/metronome-tick.wav')
-
-
 
 const BPMInput = document.getElementById("BPM");
 let BPM = Number(BPMInput.value);
@@ -31,7 +28,7 @@ let currentStep = 0;
 let playInterval = null;
 
 function moveCursorToStep(step) {
-  cursor.style.left = (step * STEP_W) + "px";
+  cursor.style.left = (step * STEP_WIDTH) + "px";
 }
 
 function getStepMs() {
@@ -44,7 +41,7 @@ function startPlayBack() {
   currentStep = 0;
   moveCursorToStep(currentStep);
 
-  // если вдруг уже был запущен интервал – чистим его
+
   if (playInterval) {
     clearInterval(playInterval);
   }
@@ -52,23 +49,19 @@ function startPlayBack() {
   playInterval = setInterval(() => {
     currentStep++;
 
-    // если дошли до конца — стоп
+    /* если дошли до конца — стоп
     if (currentStep >= STEPS) {
       isPlaying = false;
       pauseStopWatch();
       stopPlayBack();
       return;
-    }
+    }*/
 
     // двигаем курсор
     moveCursorToStep(currentStep);
 
     // играем звук метронома, если есть
-    if (typeof primaryBeat !== "undefined") {
-      primaryBeat.currentTime = 0;
-      primaryBeat.play();
-    }
-
+    
   }, getStepMs());
 }
 
@@ -83,8 +76,8 @@ function stopPlayBack() {
 
 
 // Grid Size
-grid.style.width = `${STEP_W * STEPS}px`;
-grid.style.height = `${ROW_H * ROWS}px`;
+grid.style.width = `${STEP_WIDTH * STEPS}px`;
+grid.style.height = `${ROW_HEIGHT * ROWS}px`;
 
 
 // Play Button 
@@ -147,8 +140,8 @@ grid.addEventListener("click", (e) => {
   const x = e.offsetX;
   const y = e.offsetY;
 
-  const col = Math.floor(x / STEP_W);
-  const row = Math.floor(y / ROW_H);
+  const col = Math.floor(x / STEP_WIDTH);
+  const row = Math.floor(y / ROW_HEIGHT);
 
   createNote(col, row, 1);
 });
@@ -157,9 +150,9 @@ grid.addEventListener("click", (e) => {
 function createNote(col, row, length = 1) {
   const note = document.createElement("div");
   note.className = "note";
-  note.style.left = `${col * STEP_W +1.45}px`;
-  note.style.top = `${row * ROW_H +1}px`;
-  note.style.width = `${length * STEP_W -1.2}px`;
+  note.style.left = `${col * STEP_WIDTH +1.45}px`;
+  note.style.top = `${row * ROW_HEIGHT +1}px`;
+  note.style.width = `${length * STEP_WIDTH -1.2}px`;
 
   const handle = document.createElement("div");
   handle.className = "resize-handle";
@@ -236,10 +229,10 @@ console.log("Grid size:", grid.style.width, grid.style.height);
 
 let Metronome = false
 
-  let soundInterval = beatMs;
+  let soundInterval = 60000 / BPM;
 
   let startStopMetronome = playBtn.addEventListener('click', () => {
-    soundInterval = calculateSoundInterval();
+    soundInterval = getStepMs();
       startMetronome(soundInterval);
   })
 
@@ -248,26 +241,21 @@ let Metronome = false
   let MetronomeSwitch = MetronomeButton.addEventListener('click', () => {
     if (MetronomeState == false){
       MetronomeState = true;
-      MetronomeSound.play();
+      // Коорч, я пока сать, лучше в школе посидим с кодом, а то я не понимаю как это работает
       }
     })
 
 
-  function startMetronome(si) {
+  function startMetronome(soundInterval) {
       timerId = setInterval(() => {
-          getStepMs()
+          
           MetronomeSound.play();
           MetronomeSound.currentTime = 0;
-      },si);
+      },soundInterval);
       
   }
 
- 
 
-let calculateSoundInterval = () => {
-    return (60/BPM)*1000;
-}
-
-let updateBpmInDisplay = display.addEventListener('change', ()=> {
-    soundInterval = calculateSoundInterval();
-})
+let updateBpmInDisplay = document.addEventListener('change', ()=> {
+    soundInterval = getStepMs();
+});
