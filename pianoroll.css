@@ -1,3 +1,5 @@
+
+
 :root {
   --step-width: 40px;
   --row-height: 20px;
@@ -281,11 +283,12 @@ input#BPM {
 
 .resize-handle {
   position: absolute;
-  right: 0;
+  right: 1;
+  left: 1;
   top: 0;
   width: 4px;
   height: 100%;
-  background: rgba(255, 255, 255, 0.2);
+
   cursor: ew-resize;
 }
 

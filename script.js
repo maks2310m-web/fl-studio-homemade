@@ -1,10 +1,41 @@
-//Global variables 
+/*Time system, fetched from fl studio, this time marking will be used in the piano-roll most logic*/
 
-const STEP_WIDTH = 40; // Grid size (PX)
-const ROW_HEIGHT = 20; //Grid Height
+// BEATS PER BAR 4, 384 ticks.
+const BEATS_PER_BAR = 4;
+
+const TICKS_PER_BEAT = 96;
+const TICKS_PER_BAR  = BEATS_PER_BAR * TICKS_PER_BEAT; // 384 ticks
+
+//STEP = 1/4 BEAT
 const STEPS_PER_BEAT = 4;
-const STEPS = 40; //How much steps, increases time.
-const ROWS = 28; // How much rows(notes), can be only a number divided by 7.
+const TICKS_PER_STEP = TICKS_PER_BEAT / STEPS_PER_BEAT; // 24 ticks
+
+//BEAT DIVISONS
+
+const TICKS_PER_HALF_BEAT = TICKS_PER_BEAT / 2; //48
+const TICKS_PER_THIRD_BEAT = TICKS_PER_BEAT / 3; //32
+const TICKS_PER_QUARTER_BEAT = TICKS_PER_BEAT / 4 ; //24
+const TICKS_PER_SIXTH_BEAT = TICKS_PER_BEAT / 6; //16
+
+//STEP DIVISIONS
+const TICKS_PER_HALF_STEP = TICKS_PER_STEP / 2; //12
+const TICKS_PER_THIRD_STEP = TICKS_PER_STEP / 3; //8 
+const TICKS_PER_QUARTER_STEP = TICKS_PER_STEP / 4; //6
+const TICKS_PER_SIXTH_STEP = TICKS_PER_STEP / 6; //4
+
+//PATTERN LENGTH  
+let BARS_TOTAL = 4;
+let TOTAL_TICKS = BARS_TOTAL * TICKS_PER_BAR;
+
+//VISUAL
+const TICK_WIDTH = 4;
+const ROW_HEIGHT = 20;
+const ROWS = 60; // Octave rows, can be a number divided only by 12 since there is only 12 notes: C, C#, D, D#, E, F, F#, G, G#, A, A#, B
+
+let isPlaying = false;
+let currentTick= 0; 
+let playInterval = null;
+
 
 //HTML DOM elements
 
@@ -14,18 +45,18 @@ const cursor   = document.getElementById("cursor");
 //Sound elements
 const MetronomeSound = new Audio('audio/metronome-tick.wav')
 
+
+
+
+
 const BPMInput = document.getElementById("BPM");
-let BPM = Number(BPMInput.value);
-BPMInput.addEventListener("input", () => {
+let BPM = Number(BPMInput.value) || 120;
+BPMInput.addEventListener("input",() => {
   BPM = Number(BPMInput.value) || 0;
   console.log("BPM Changed to:", BPM)
 });
 
-// let Variables
-let notes = [];
-let isPlaying = false;
-let currentStep = 0;
-let playInterval = null;
+
 
 function moveCursorToStep(step) {
   cursor.style.left = (step * STEP_WIDTH) + "px";
@@ -49,13 +80,13 @@ function startPlayBack() {
   playInterval = setInterval(() => {
     currentStep++;
 
-    /* если дошли до конца — стоп
+
     if (currentStep >= STEPS) {
       isPlaying = false;
       pauseStopWatch();
       stopPlayBack();
       return;
-    }*/
+    }
 
     // двигаем курсор
     moveCursorToStep(currentStep);
@@ -134,6 +165,7 @@ window.addEventListener("keydown", (e) => {
 
 
 // --- Добавление ноты по клику
+let notes = [];
 grid.addEventListener("click", (e) => {
   if (e.target !== grid) return;
 
@@ -163,21 +195,64 @@ function createNote(col, row, length = 1) {
   const noteObj = { el: note, col, row, length };
   notes.push(noteObj);
 
+  NoteResize(noteObj);
+
   note.addEventListener("contextmenu", () => removeNote(noteObj))
 }
 
+function NoteResize(noteObj) {
+  const note = noteObj.el;
+  const handle = note.querySelector('.resize-handle');
+  if (!handle) return;
 
-//ContextMenu Global turn off
+  let isResizing = false;
+  let startX = 0;
+  let startLength = noteObj.length;
 
-window.addEventListener(`contextmenu`, (e) => {
+  handle.addEventListener('mousedown', (e) => {
     e.preventDefault();
-});
+    e.stopPropagation(); // чтобы клик по хэндлу не считался кликом по grid
 
-// Remove note 
-function removeNote(noteObj) {
-  grid.removeChild(noteObj.el);
-  notes = notes.filter(n => n !== noteObj);
+    isResizing = true;
+    startX = e.clientX;
+    startLength = noteObj.length;
+
+    // слушаем движение мыши по всему окну
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+
+  function onMouseMove(e) {
+    if (!isResizing) return;
+
+    const deltaX = e.clientX - startX;          // в пикселях
+    const deltaSteps = Math.round(deltaX / STEP_WIDTH); // в шагах
+
+    let newLength = startLength + deltaSteps;
+    if (newLength < 1) newLength = 1;           // не даём длине быть 0 или меньше
+
+    noteObj.length = newLength;
+    note.style.width = `${newLength * STEP_WIDTH - 1.2}px`;
+  }
+
+  function onMouseUp() {
+    if (!isResizing) return;
+    isResizing = false;
+
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  }
 }
+//Prevent context menu on grid... USED LINK:https://pqina.nl/blog/disable-right-click-with-javascript/#:~:text=To%20only%20disable%20it%20in,)%20%7B%20return%3B%20%7D%20e.
+
+grid.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+    });
+
+
+
+
+
 
 
 
@@ -231,38 +306,26 @@ console.log("Grid size:", grid.style.width, grid.style.height);
 
 
 
-let Metronome = false
+const MetronomeButton = document.getElementById("metronome")
 
-  let soundInterval = 60000 / BPM;
-
-  let startStopMetronome = playBtn.addEventListener('click', () => {
-    soundInterval = getStepMs();
-      startMetronome(soundInterval);
-  })
-
-  const MetronomeButton = document.getElementById("metronome")
-  let MetronomeState = false;
-  let MetronomeSwitch = MetronomeButton.addEventListener('click', () => {
-    if (MetronomeState == false){
-      MetronomeState = true;
-      }
-    })
-
-
-    
-  function startMetronome(soundInterval) {
-      timerId = setInterval(() => {
-          
-          MetronomeSound.play();
-          MetronomeSound.currentTime = 0;
-      },soundInterval);
-      
+let MetronomeState = false; 
+let metronomeTimerId = null;
+function updateMetronome() {
+    if (metronomeTimerId) {
+    clearInterval(metronomeTimerId);
+    metronomeTimerId = null;
   }
 
-  
-
-
-let updateBpmInDisplay = document.addEventListener('change', ()=> {
-    soundInterval = getStepMs();
+if (!isPlaying || !MetronomeState || BPM <= 0) return;
+const interval = getStepMs();
+  metronomeTimerId = setInterval(() => {
+    MetronomeSound.currentTime = 0;
+    MetronomeSound.play();
+  }, interval);
+}
+MetronomeButton.addEventListener("click", () => {
+ MetronomeState = !MetronomeState; // change state
+  updateMetronome();               //update timer
 });
+
 
