@@ -104,7 +104,7 @@ stopPlayBack();
 function togglePlay() {
 if (!isPlaying) {
   onPlay(); 
-  isPlaying = true;
+
 
   playIcon.src = "img/Pause Button.svg";
   playIcon.alt = "Pause";
@@ -112,7 +112,7 @@ if (!isPlaying) {
 
 } else {
   onPause();
-  isPlaying = false;
+
 
   playIcon.src =  "img/Play Button.svg";
   playIcon.alt =  "Play";
@@ -164,10 +164,14 @@ function createNote(col, row, length = 1) {
   notes.push(noteObj);
 
   note.addEventListener("contextmenu", () => removeNote(noteObj))
-  window.addEventListener(`contextmenu`, (e) => {
+}
+
+
+//ContextMenu Global turn off
+
+window.addEventListener(`contextmenu`, (e) => {
     e.preventDefault();
 });
-}
 
 // Remove note 
 function removeNote(noteObj) {
@@ -241,11 +245,11 @@ let Metronome = false
   let MetronomeSwitch = MetronomeButton.addEventListener('click', () => {
     if (MetronomeState == false){
       MetronomeState = true;
-      // Коорч, я пока сать, лучше в школе посидим с кодом, а то я не понимаю как это работает
       }
     })
 
 
+    
   function startMetronome(soundInterval) {
       timerId = setInterval(() => {
           
@@ -255,7 +259,10 @@ let Metronome = false
       
   }
 
+  
+
 
 let updateBpmInDisplay = document.addEventListener('change', ()=> {
     soundInterval = getStepMs();
 });
+
