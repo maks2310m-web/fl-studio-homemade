@@ -96,7 +96,7 @@ const ROOT_MIDI = 60; // C4
 let pianoBuffer = null;
 let pianoStartOffset = 0;
 
-const MIN_NOTE_PLAY_SEC = 0.30;
+const MIN_NOTE_PLAY_SEC = 5.00;
 const FADE_IN_SEC = 0.005;
 const FADE_OUT_SEC = 0.02;
 

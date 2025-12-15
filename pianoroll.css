@@ -28,7 +28,7 @@ body {
   grid-template-columns: 260px 1fr;
   grid-template-rows: auto 1fr 30px;
   grid-template-areas:
-    "options header"
+    "fileBrowser header"
     "fileBrowser workspace"
     "fileBrowser footer";
   height: 100vh;
