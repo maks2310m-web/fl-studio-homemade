@@ -12,8 +12,11 @@ const TICKS_PER_BAR  = BEATS_PER_BAR * TICKS_PER_BEAT;
 const STEPS_PER_BEAT = 4;
 const TICKS_PER_STEP = TICKS_PER_BEAT / STEPS_PER_BEAT; // 24
 
-const MIN_NOTE_TICKS = 1;
-const DEFAULT_NOTE_TICKS = 6;
+// SNAP: half-step = 1/8 beat = 12 ticks
+const SNAP_TICKS = TICKS_PER_STEP / 2; // 12
+
+const MIN_NOTE_TICKS     = SNAP_TICKS;     // минимальная длина ноты = 12 тиков
+const DEFAULT_NOTE_TICKS = TICKS_PER_STEP; // дефолт = 1 step (24), можешь поменять на SNAP_TICKS если хочешь
 
 // Pattern length
 let BARS_TOTAL  = 4;
@@ -24,7 +27,7 @@ let TOTAL_TICKS = BARS_TOTAL * TICKS_PER_BAR;
   VISUAL GRID SETTINGS
    ========================================================= */
 
-const TICK_WIDTH  = 4;
+const TICK_WIDTH  = 2;
 const ROW_HEIGHT  = 20;
 const ROWS        = 60; // 5 octaves × 12 notes (C2–B6)
 
@@ -36,19 +39,47 @@ const ROWS        = 60; // 5 octaves × 12 notes (C2–B6)
 const grid      = document.getElementById("grid");
 const cursor    = document.getElementById("cursor");
 const playBtn   = document.getElementById("play");
-const stopBtn = document.getElementById("stop")
+const stopBtn   = document.getElementById("stop");
 const playIcon  = document.getElementById("playIcon");
 const BPMInput  = document.getElementById("BPM");
 const stopWatch = document.getElementById("stopWatch");
-const metronomeBtn    = document.getElementById("metronome");
+const metronomeBtn = document.getElementById("metronome");
 const pianoRoll = document.getElementById("piano-roll");
 const followBtn = document.getElementById("follow");
-const noteLane = document.getElementById("note-lane");
+const noteLane  = document.getElementById("note-lane");
 const audioInput = document.getElementById("audio");
-const fileLabel = document.getElementById("fileLabel");
+const fileLabel  = document.getElementById("fileLabel");
+const timeline = document.getElementById("timeline");
+const timelineGrid = document.getElementById("timeline-grid");
+const timelineCursor = document.getElementById("timeline-cursor");
+
 
 /* =========================================================
-  AUDIO 
+  SNAP HELPERS (NOTES ONLY)
+   ========================================================= */
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function snapTick(tick, mode = "round") {
+  const q = tick / SNAP_TICKS;
+  const snapped =
+    mode === "floor" ? Math.floor(q) * SNAP_TICKS :
+    mode === "ceil"  ? Math.ceil(q)  * SNAP_TICKS :
+                       Math.round(q) * SNAP_TICKS;
+  return snapped;
+}
+
+function snapLen(len) {
+  let v = snapTick(len, "round");
+  if (v < MIN_NOTE_TICKS) v = MIN_NOTE_TICKS;
+  return v;
+}
+
+
+/* =========================================================
+  AUDIO
    ========================================================= */
 
 const MetronomeSound = new Audio("audio/metronome-tick.wav");
@@ -63,12 +94,31 @@ const PIANO_SAMPLE_URL = "audio/piano-c4.mp3";
 const ROOT_MIDI = 60; // C4
 
 let pianoBuffer = null;
+let pianoStartOffset = 0;
+
+const MIN_NOTE_PLAY_SEC = 0.30;
+const FADE_IN_SEC = 0.005;
+const FADE_OUT_SEC = 0.02;
+
+function findFirstSoundOffset(buffer, threshold = 0.001, maxSearchSec = 1.0) {
+  const data = buffer.getChannelData(0);
+  const sr = buffer.sampleRate;
+
+  const limit = Math.min(data.length, Math.floor(maxSearchSec * sr));
+  for (let i = 0; i < limit; i++) {
+    const v = data[i];
+    if (v > threshold || v < -threshold) return i / sr;
+  }
+  return 0;
+}
+
 let pianoLoadingPromise = null;
 
 async function setPianoBufferFromArrayBuffer(arrayBuffer) {
   try {
     const decoded = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
     pianoBuffer = decoded;
+    pianoStartOffset = findFirstSoundOffset(decoded);
     pianoLoadingPromise = null;
     return true;
   } catch (err) {
@@ -81,7 +131,7 @@ async function ensurePianoLoaded() {
   if (pianoBuffer) return true;
 
   if (!pianoLoadingPromise) {
-    pianoLoadingPromise = fetch("audio/Piano_C4.wav")
+    pianoLoadingPromise = fetch(PIANO_SAMPLE_URL)
       .then(r => r.arrayBuffer())
       .then(ab => setPianoBufferFromArrayBuffer(ab))
       .catch(err => {
@@ -89,11 +139,10 @@ async function ensurePianoLoaded() {
         return false;
       });
   }
-
   return pianoLoadingPromise;
 }
 
-function playPiano(noteObj) {
+function playPiano(noteObj, overrideDurSec = null) {
   if (!pianoBuffer) return false;
 
   const midi = rowToMidi(noteObj.row);
@@ -106,18 +155,25 @@ function playPiano(noteObj) {
   const gain = audioCtx.createGain();
   const now = audioCtx.currentTime;
 
+  const durSecFromGrid = (noteObj.lengthTicks * getTickMs()) / 1000;
+  const wanted = overrideDurSec != null
+    ? overrideDurSec
+    : Math.max(MIN_NOTE_PLAY_SEC, durSecFromGrid);
+
+  const maxPossible = (pianoBuffer.duration - pianoStartOffset) / rate;
+  const realDur = Math.max(0.03, Math.min(wanted, maxPossible));
+
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.18, now + FADE_IN_SEC);
 
-  const durSec = (noteObj.lengthTicks * getTickMs()) / 1000;
-  const stopAt = now + Math.max(0.03, durSec);
-
-  gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(now + 0.02, stopAt - 0.02));
+  const stopAt = now + realDur;
+  const releaseAt = Math.max(now + 0.02, stopAt - FADE_OUT_SEC);
+  gain.gain.exponentialRampToValueAtTime(0.0001, releaseAt);
 
   src.connect(gain);
   gain.connect(masterGain);
 
-  src.start(now);
+  src.start(now, pianoStartOffset);
   src.stop(stopAt);
 
   return true;
@@ -134,32 +190,27 @@ if (audioInput) {
     const ab = await file.arrayBuffer();
     const ok = await setPianoBufferFromArrayBuffer(ab);
 
-    if (fileLabel) {
-      fileLabel.textContent = ok ? file.name : "LOAD ERROR";
-    }
+    if (fileLabel) fileLabel.textContent = ok ? file.name : "LOAD ERROR";
   });
 }
 
 
-
-
 /* =========================================================
-  NOTES
+  NOTES / PITCH
    ========================================================= */
 
 const MIDI_C2 = 36;
 const MIDI_B6 = 95;
+
 function rowToMidi(row) {
   return MIDI_B6 - row;
 }
-//Pitch for each note
-function midiToFreq(midi) {
-  return 440 * Math.pow(2,(midi -69) /12);
-}
+
 
 /* =========================================================
-  NOTE LANING
+  NOTE LANE
    ========================================================= */
+
 const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
 function midiToName(midi) {
@@ -172,13 +223,11 @@ function renderNoteLane() {
   if (!noteLane) return;
 
   noteLane.innerHTML = "";
-
   for (let row = 0; row < ROWS; row++) {
     const midi = rowToMidi(row);
     const label = document.createElement("div");
     label.className = "note-label";
 
-    // подсветка "черных" клавиш
     const n = midi % 12;
     if ([1,3,6,8,10].includes(n)) label.classList.add("black");
 
@@ -186,24 +235,22 @@ function renderNoteLane() {
     noteLane.appendChild(label);
   }
 }
-
 renderNoteLane();
 
 
 /* =========================================================
   APP STATE
    ========================================================= */
+
 let followCursorOn = false;
-let isPlaying    = false;
-let currentTick  = 0;
+let isPlaying = false;
+let currentTick = 0;
 let playInterval = null;
 let BPM = Number(BPMInput.value) || 120;
 
-// notes stored in TICKS
 let notes = [];
 
-// metronome
-let metronomeOn      = false;
+let metronomeOn = false;
 let metronomeTimerId = null;
 
 
@@ -214,11 +261,17 @@ let metronomeTimerId = null;
 grid.style.width  = `${TICK_WIDTH * TOTAL_TICKS}px`;
 grid.style.height = `${ROW_HEIGHT * ROWS}px`;
 
+if (timelineGrid) {
+  timelineGrid.style.width = `${TICK_WIDTH * TOTAL_TICKS}px`;
+  renderTimeline();
+}
+if (timeline) timeline.style.width = `${TICK_WIDTH * TOTAL_TICKS}px`;
+
 grid.addEventListener("contextmenu", (e) => e.preventDefault());
 
 
 /* =========================================================
-  TIME / TRANSPORT
+  TIME / TRANSPORT (UNCHANGED: 1 tick step)
    ========================================================= */
 
 function getTickMs() {
@@ -229,13 +282,8 @@ function getTickMs() {
 function triggerNotesAtTick(tick) {
   for (const note of notes) {
     if (note.startTick === tick) {
-
       if (audioCtx.state === "suspended") audioCtx.resume();
-
-      ensurePianoLoaded().then(() => {
-        playPiano(note);
-      });
-
+      ensurePianoLoaded().then(() => playPiano(note));
       flashNote(note);
     }
   }
@@ -246,35 +294,31 @@ function flashNote(noteObj) {
   setTimeout(() => noteObj.el.classList.remove("playing"), 120);
 }
 
-
 function moveCursorToTick(tick) {
-  if (tick < 0) tick = 0;
-  if (tick >= TOTAL_TICKS) tick = TOTAL_TICKS - 1;
-  cursor.style.left = (tick * TICK_WIDTH) + "px";
+  tick = clamp(tick, 0, TOTAL_TICKS - 1);
+
+  const x = (tick * TICK_WIDTH) + "px";
+  cursor.style.left = x;
+  if (timelineCursor) timelineCursor.style.left = x;
 }
 
 function startPlayback() {
-
   moveCursorToTick(currentTick);
   updateTimeDisplay();
   triggerNotesAtTick(currentTick);
 
   if (playInterval) clearInterval(playInterval);
 
+  // важно: обратно по 1 тику (как было) — без доп. лагов
   playInterval = setInterval(() => {
-    
     currentTick++;
 
-    if (currentTick >= TOTAL_TICKS) {
-      currentTick = 0; // loop
-    }
+    if (currentTick >= TOTAL_TICKS) currentTick = 0;
 
     moveCursorToTick(currentTick);
     followCursor();
     updateTimeDisplay();
-
-    // later: trigger notes here
-  triggerNotesAtTick(currentTick);
+    triggerNotesAtTick(currentTick);
   }, getTickMs());
 }
 
@@ -285,9 +329,24 @@ function stopPlayback() {
   }
 }
 
+function renderTimeline() {
+  if (!timelineGrid) return;
+
+  timelineGrid.innerHTML = "";
+  for (let b = 0; b < BARS_TOTAL; b++) {
+    const label = document.createElement("div");
+    label.className = "bar-label";
+    label.textContent = (b + 1);
+
+    const x = b * TICKS_PER_BAR * TICK_WIDTH + 6;
+    label.style.left = x + "px";
+    timelineGrid.appendChild(label);
+  }
+}
+
 
 /* =========================================================
-   TIMER (derived from currentTick)
+  TIMER
    ========================================================= */
 
 function updateTimeDisplay() {
@@ -305,7 +364,7 @@ function updateTimeDisplay() {
 
 
 /* =========================================================
-   PLAY BUTTON / BPM, EVENT LISTENERS
+  PLAY BUTTON / BPM
    ========================================================= */
 
 async function onPlay() {
@@ -344,8 +403,8 @@ BPMInput.addEventListener("input", () => {
   updateMetronome();
 });
 
-
 stopBtn.addEventListener("click", () => {
+  currentTick = 0;
   moveCursorToTick(currentTick);
   updateTimeDisplay();
   stopPlayback();
@@ -360,10 +419,10 @@ followBtn.addEventListener("click", () => {
 });
 
 
-
 /* =========================================================
-   FOLLOW CURSOR
+  FOLLOW CURSOR
    ========================================================= */
+
 function followCursor() {
   if (!followCursorOn) return;
 
@@ -380,11 +439,46 @@ function followCursor() {
   }
 }
 
-    
+
+/* =========================================================
+  MOVE CURSOR FROM TIMELINE (unchanged)
+   ========================================================= */
+
+function setCursorFromTimelineClientX(clientX) {
+  if (!timeline) return;
+
+  const rect = timeline.getBoundingClientRect();
+  const xInTimeline = clientX - rect.left;
+
+  const x = xInTimeline + pianoRoll.scrollLeft;
+  const tick = Math.floor(x / TICK_WIDTH);
+
+  currentTick = clamp(tick, 0, TOTAL_TICKS - 1);
+  moveCursorToTick(currentTick);
+  updateTimeDisplay();
+}
+
+let timelineDragging = false;
+
+if (timeline) {
+  timeline.addEventListener("mousedown", (e) => {
+    timelineDragging = true;
+    setCursorFromTimelineClientX(e.clientX);
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!timelineDragging) return;
+    setCursorFromTimelineClientX(e.clientX);
+  });
+
+  window.addEventListener("mouseup", () => {
+    timelineDragging = false;
+  });
+}
 
 
 /* =========================================================
-   NOTES (tick-based)
+  NOTES (SNAP ONLY HERE)
    ========================================================= */
 
 function hasOverlap(row, startTick, lengthTicks, ignoreNoteObj = null) {
@@ -397,28 +491,32 @@ function hasOverlap(row, startTick, lengthTicks, ignoreNoteObj = null) {
     const nStart = n.startTick;
     const nEnd = n.startTick + n.lengthTicks;
 
-    // пересечение интервалов (start,end)
-    if (startTick < nEnd && end > nStart) {
-      return true;
-    }
+    if (startTick < nEnd && end > nStart) return true;
   }
   return false;
 }
 
-   
 grid.addEventListener("click", (e) => {
   if (e.target !== grid) return;
 
-  const startTick = Math.floor(e.offsetX / TICK_WIDTH);
-  const row       = Math.floor(e.offsetY / ROW_HEIGHT);
+  const rawTick = Math.floor(e.offsetX / TICK_WIDTH);
+  const startTick = snapTick(rawTick, "floor");
+  const row = Math.floor(e.offsetY / ROW_HEIGHT);
 
-if (hasOverlap(row, startTick, DEFAULT_NOTE_TICKS)) return;
-createNote(startTick, row, DEFAULT_NOTE_TICKS);
+  const len = snapLen(DEFAULT_NOTE_TICKS);
+
+  if (hasOverlap(row, startTick, len)) return;
+  createNote(startTick, row, len);
 });
 
 function createNote(startTick, row, lengthTicks) {
-  lengthTicks = Number(lengthTicks);
-  if (!Number.isFinite(lengthTicks) || lengthTicks < MIN_NOTE_TICKS) lengthTicks = MIN_NOTE_TICKS;
+  startTick = snapTick(startTick, "round");
+  lengthTicks = snapLen(lengthTicks);
+
+  startTick = clamp(startTick, 0, TOTAL_TICKS - 1);
+  if (startTick + lengthTicks > TOTAL_TICKS) {
+    startTick = snapTick(TOTAL_TICKS - lengthTicks, "floor");
+  }
 
   const note = document.createElement("div");
   note.className = "note";
@@ -456,9 +554,8 @@ function removeNote(noteObj) {
 }
 
 function setupNoteResize(noteObj) {
-
   let isResizing = false;
-  let resizeSide = null; // "left" | "right"
+  let resizeSide = null;
 
   let startX = 0;
   let startTick = 0;
@@ -500,41 +597,44 @@ function setupNoteResize(noteObj) {
   function onMove(e) {
     if (!isResizing) return;
 
-    const deltaTicks = Math.round((e.clientX - startX) / TICK_WIDTH);
+    const deltaTicksRaw = Math.round((e.clientX - startX) / TICK_WIDTH);
+
+    let nextStart = noteObj.startTick;
+    let nextLen = noteObj.lengthTicks;
 
     if (resizeSide === "right") {
-      let newLen = startLength + deltaTicks;
-      if (newLen < MIN_NOTE_TICKS) newLen = MIN_NOTE_TICKS;
-
-      noteObj.lengthTicks = newLen;
+      nextStart = startTick;
+      nextLen = snapLen(startLength + deltaTicksRaw);
     }
 
     if (resizeSide === "left") {
-      let newStartTick = startTick + deltaTicks;
-      let newLen = startLength - deltaTicks;
+      let newStart = startTick + deltaTicksRaw;
+      let newLen = startLength - deltaTicksRaw;
 
-      if (newLen < MIN_NOTE_TICKS) {
-        newLen = MIN_NOTE_TICKS;
-        newStartTick = startTick + (startLength - MIN_NOTE_TICKS);
+      newStart = snapTick(newStart, "round");
+      newLen = snapLen(newLen);
+
+      if (newStart < 0) {
+        newStart = 0;
+        newLen = snapLen((startTick + startLength) - newStart);
       }
 
-      if (newStartTick < 0) {
-        newLen += newStartTick;
-        newStartTick = 0;
-        if (newLen < MIN_NOTE_TICKS) newLen = MIN_NOTE_TICKS;
-      }
-
-      noteObj.startTick = newStartTick;
-      noteObj.lengthTicks = newLen;
+      nextStart = newStart;
+      nextLen = newLen;
     }
 
-    if (noteObj.startTick + noteObj.lengthTicks > TOTAL_TICKS) {
-      noteObj.lengthTicks = TOTAL_TICKS - noteObj.startTick;
-      if (noteObj.lengthTicks < MIN_NOTE_TICKS) {
-        noteObj.lengthTicks = MIN_NOTE_TICKS;
-        noteObj.startTick = Math.max(0, TOTAL_TICKS - MIN_NOTE_TICKS);
+    if (nextStart + nextLen > TOTAL_TICKS) {
+      nextLen = snapLen(TOTAL_TICKS - nextStart);
+      if (nextLen < MIN_NOTE_TICKS) {
+        nextLen = MIN_NOTE_TICKS;
+        nextStart = snapTick(TOTAL_TICKS - MIN_NOTE_TICKS, "floor");
       }
     }
+
+    if (hasOverlap(noteObj.row, nextStart, nextLen, noteObj)) return;
+
+    noteObj.startTick = nextStart;
+    noteObj.lengthTicks = nextLen;
 
     noteObj.el.style.left  = `${noteObj.startTick * TICK_WIDTH + 1}px`;
     noteObj.el.style.width = `${noteObj.lengthTicks * TICK_WIDTH - 2}px`;
@@ -549,6 +649,21 @@ function setupNoteResize(noteObj) {
   }
 }
 
+/* --- pitch preview on vertical change --- */
+let lastPreviewAt = 0;
+const PREVIEW_COOLDOWN_MS = 80;
+function previewPitch(row) {
+  const now = performance.now();
+  if (now - lastPreviewAt < PREVIEW_COOLDOWN_MS) return;
+  lastPreviewAt = now;
+
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  ensurePianoLoaded().then(() => {
+    // короткое превью (0.25s), чтобы не засирать звук
+    playPiano({ row, lengthTicks: DEFAULT_NOTE_TICKS }, 0.25);
+  });
+}
+
 function setupNoteDrag(noteObj) {
   const note = noteObj.el;
 
@@ -559,8 +674,9 @@ function setupNoteDrag(noteObj) {
   let startTick = 0;
   let startRow = 0;
 
+  let lastRowPreviewed = noteObj.row;
+
   note.addEventListener("mousedown", (e) => {
-    // если клик по хэндлу — не начинаем drag
     if (e.target.closest(".resize-handle")) return;
 
     e.preventDefault();
@@ -573,6 +689,8 @@ function setupNoteDrag(noteObj) {
     startTick = noteObj.startTick;
     startRow = noteObj.row;
 
+    lastRowPreviewed = noteObj.row;
+
     window.addEventListener("mousemove", onDragMove);
     window.addEventListener("mouseup", onDragEnd);
   });
@@ -583,28 +701,32 @@ function setupNoteDrag(noteObj) {
     const dx = e.clientX - startMouseX;
     const dy = e.clientY - startMouseY;
 
-    const deltaTicks = Math.round(dx / TICK_WIDTH);
+    const deltaTicksRaw = Math.round(dx / TICK_WIDTH);
     const deltaRows  = Math.round(dy / ROW_HEIGHT);
 
-    let newStartTick = startTick + deltaTicks;
-    let newRow       = startRow + deltaRows;
+    let newStartTick = startTick + deltaTicksRaw;
+    newStartTick = snapTick(newStartTick, "round");
 
-    // clamp X: не выходить за ширину (учитываем длину ноты)
+    let newRow = startRow + deltaRows;
+
     const maxStartTick = TOTAL_TICKS - noteObj.lengthTicks;
-    if (newStartTick < 0) newStartTick = 0;
-    if (newStartTick > maxStartTick) newStartTick = maxStartTick;
+    newStartTick = clamp(newStartTick, 0, maxStartTick);
 
-    // clamp Y: 0..ROWS-1
-    if (newRow < 0) newRow = 0;
-    if (newRow > ROWS - 1) newRow = ROWS - 1;
+    newRow = clamp(newRow, 0, ROWS - 1);
 
-    // update state
+    if (hasOverlap(newRow, newStartTick, noteObj.lengthTicks, noteObj)) return;
+
     noteObj.startTick = newStartTick;
     noteObj.row = newRow;
 
-    // update DOM
     note.style.left = `${newStartTick * TICK_WIDTH + 1}px`;
     note.style.top  = `${newRow * ROW_HEIGHT + 1}px`;
+
+    // preview when row changes
+    if (newRow !== lastRowPreviewed) {
+      lastRowPreviewed = newRow;
+      previewPitch(newRow);
+    }
   }
 
   function onDragEnd() {
@@ -616,8 +738,9 @@ function setupNoteDrag(noteObj) {
   }
 }
 
+
 /* =========================================================
-   METRONOME (simple beat click)
+  METRONOME
    ========================================================= */
 
 function updateMetronome() {
@@ -628,8 +751,7 @@ function updateMetronome() {
 
   if (!isPlaying || !metronomeOn || BPM <= 0) return;
 
-  const interval = 60000 / BPM ;
-
+  const interval = 60000 / BPM;
   metronomeTimerId = setInterval(() => {
     MetronomeSound.currentTime = 0;
     MetronomeSound.play();
@@ -641,3 +763,18 @@ metronomeBtn.addEventListener("click", () => {
   metronomeBtn.classList.toggle("active", metronomeOn);
   updateMetronome();
 });
+
+
+/* =========================================================
+  OPTIONAL: sync note-lane vertical scroll with piano-roll
+   ========================================================= */
+if (pianoRoll && noteLane) {
+  pianoRoll.addEventListener("scroll", () => {
+    noteLane.scrollTop = pianoRoll.scrollTop;
+  });
+
+  noteLane.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    pianoRoll.scrollTop += e.deltaY;
+  }, { passive: false });
+}

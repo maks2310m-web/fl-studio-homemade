@@ -47,20 +47,29 @@
 
     <input type="file" accept="audio/*" id="audio">
   </label>
-    <footer class="hint">Click empty cell to add note · Drag to move · Drag to resize · Right-click to delete · Create!</footer>
+    <footer class="hint">Click empty cell to add note · Drag to move · Drag to resize · If no sound, add file · Right-click to delete · Create! </footer>
 
 <main id="workspace">
+  
   <div id="piano-roll-wrap">
     <div id="note-lane"></div>
 
     <div id="piano-roll" aria-label="Piano roll container">
+
+      <div id="timeline">
+        <div id="timeline-grid"></div>
+        <div id="timeline-cursor"></div>
+      </div>
+      
       <div id="grid">
         <div id="cursor" class="cursor"></div>
       </div>
+      
       <div id="waveform"></div>
     </div>
   </div>
 </main>
+
 
             
 
