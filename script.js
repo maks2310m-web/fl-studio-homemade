@@ -15,8 +15,8 @@ const TICKS_PER_STEP = TICKS_PER_BEAT / STEPS_PER_BEAT; // 24
 // SNAP: half-step = 1/8 beat = 12 ticks
 const SNAP_TICKS = TICKS_PER_STEP / 2; // 12
 
-const MIN_NOTE_TICKS     = SNAP_TICKS;     // минимальная длина ноты = 12 тиков
-const DEFAULT_NOTE_TICKS = TICKS_PER_STEP; // дефолт = 1 step (24), можешь поменять на SNAP_TICKS если хочешь
+const MIN_NOTE_TICKS     = SNAP_TICKS;     // smallest length of note (12 ticks)
+const DEFAULT_NOTE_TICKS = TICKS_PER_STEP; 
 
 // Pattern length
 let BARS_TOTAL  = 4;
@@ -90,7 +90,7 @@ masterGain.gain.value = 0.20;
 masterGain.connect(audioCtx.destination);
 
 /* --- Piano sample (default + user upload) --- */
-const PIANO_SAMPLE_URL = "audio/piano-c4.mp3";
+const PIANO_SAMPLE_URL = "audio/Piano_C4.wav";
 const ROOT_MIDI = 60; // C4
 
 let pianoBuffer = null;
@@ -303,13 +303,13 @@ function moveCursorToTick(tick) {
 }
 
 function startPlayback() {
+  cursor.classList.add("playing");
   moveCursorToTick(currentTick);
   updateTimeDisplay();
   triggerNotesAtTick(currentTick);
 
   if (playInterval) clearInterval(playInterval);
 
-  // важно: обратно по 1 тику (как было) — без доп. лагов
   playInterval = setInterval(() => {
     currentTick++;
 
@@ -326,6 +326,7 @@ function stopPlayback() {
   if (playInterval) {
     clearInterval(playInterval);
     playInterval = null;
+    cursor.classList.remove("playing");
   }
 }
 

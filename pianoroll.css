@@ -411,8 +411,11 @@ linear-gradient(
   top: 0;
   height: 100%;
   width: var(--tick-width);
-  background: rgba(255, 255, 0, 0.15);
+  background: #ffff0026;
   pointer-events: none;
+}
+.cursor.playing {
+   box-shadow: 0px 0px 40px 5px #ffff0026;
 }
 
 .note {
@@ -430,7 +433,7 @@ linear-gradient(
 }
 
 .note.playing {
-  background: #ffa600b6;
+  box-shadow: 0px 0px 40px 5px #cafdd4;
 }
 
 .resize-handle {
