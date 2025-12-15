@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mini Piano Roll</title>
@@ -18,8 +19,8 @@
   <div class="firstBlock">
 
   <div class="main-controls">
-    <button id="play" title="Play"><img id="playIcon" src="img/play button.svg" alt="Play"></img></button>
-    <button id="stop" title="Stop"><img src="img/StopIcon.png" alt="Stop"></img></button>
+    <button id="play" title="Play"><img id="playIcon" src="img/Play button.svg" alt="Play"></button>
+    <button id="stop" title="Stop"><img src="img/StopIcon.png" alt="Stop"></button>
     <label class="bpm-label">
     <input id="BPM" type="number" value="125" step="1" placeholder="BPM">
     </label>
@@ -28,7 +29,9 @@
         
 <div class="secondary-controls">
 
-<button id="metronome" title="Metronome"><img src="img/MetronomeWhite.png" alt=""></button>  
+<button id="metronome" title="Metronome"><img src="img/MetronomeWhite.png" alt=""></button>
+<button id="follow" title="Follow Cursor">FOLLOW</button>
+
 <div id="stopWatch"><span>00:00:00</span></div>
 
 </div>
@@ -39,30 +42,45 @@
 </div>
 </header>
 <label id="fileBrowser">
-    <span>Velg Fil</span>
+    <span id="fileLabel">Velg Fil</span>
+    <footer class="hint">File uploaded should be a C4 NOTE for original pitch.</footer>
+
     <input type="file" accept="audio/*" id="audio">
   </label>
+    <footer class="hint">Click empty cell to add note · Drag to move · Drag to resize · If no sound, add file · Right-click to delete · Create! </footer>
 
 <main id="workspace">
-<div id="piano-roll" aria-label="Piano roll container">
-    <div id="grid">
-          <div id="cursor" class="cursor"></div>
+  
+  <div id="piano-roll-wrap">
+    <div id="note-lane"></div>
+
+    <div id="piano-roll" aria-label="Piano roll container">
+
+      <div id="timeline">
+        <div id="timeline-grid"></div>
+        <div id="timeline-cursor"></div>
+      </div>
+      
+      <div id="grid">
+        <div id="cursor" class="cursor"></div>
+      </div>
+      
+      <div id="waveform"></div>
     </div>
-    <footer class="hint">Click empty cell to add note · Drag to move · Drag right edge to resize · Double-click to delete</footer>
-
-</div>
-
+  </div>
 </main>
+
+
             
 
 </div>
 <script src="script.js"></script>
-
 </body>
 </html>
 <!--
 Kilder - 
-https://www.youtube.com/watch?v=FK0867WUbvE
 https://codepel.com/vanilla-javascript/javascript-knob-slider/
 https://stackoverflow.com/questions/75632384/making-a-javascript-metronome  
+https://pqina.nl/blog/disable-right-click-with-javascript/#:~:text=To%20only%20disable%20it%20in,)%20%7B%20return%3B%20%7D%20e.
+
 -->

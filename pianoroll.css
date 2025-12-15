@@ -1,6 +1,7 @@
 :root {
-  --step-w: 40px;
-  --row-h: 20px;
+  --tick-width: 2px;
+  --row-height: 20px;
+  --timeline-height: 30px;
 
   background: rgb(107, 117, 123);
 }
@@ -16,6 +17,7 @@ body {
   margin: 0;
   padding: 0;
   max-width: 100vw;
+  overflow: hidden;
 }
 
 /* =========================
@@ -36,7 +38,7 @@ body {
   grid-area:options ;
   display: flex;
   align-items: center;
-  padding: 4px 8p;
+  padding: 4px 8px;
   border-bottom: 1px solid #273136;
   border-right: 1px solid #273136;
   font-size: 14px;
@@ -132,6 +134,59 @@ button#metronome img {
   height: 32px;
 }
 
+button#metronome.active {
+  border-color: #cc7a00;
+
+  background:
+    radial-gradient(
+      rgba(255, 235, 120, 0.95) 0%,
+      rgba(255, 190, 70, 0.85) 35%,
+      rgba(255, 140, 30, 0.8) 60%,
+      rgba(255, 120, 0, 0.7) 100%
+    );
+
+  box-shadow:
+    inset 0 0 18px rgba(255, 180, 60, 0.9),
+    inset 0 0 6px rgba(255, 230, 150, 0.9);
+}
+
+button#metronome.active img {
+  filter:
+    brightness(0.2)
+    drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+
+button#follow {
+
+color: white;
+font-size: 10px;
+
+}
+
+button#follow.active {
+  border-color: #cc7a00;
+
+  background:
+    radial-gradient(
+      rgba(255, 235, 120, 0.95) 0%,
+      rgba(255, 190, 70, 0.85) 35%,
+      rgba(255, 140, 30, 0.8) 60%,
+      rgba(255, 120, 0, 0.7) 100%
+    );
+
+  box-shadow:
+    inset 0 0 18px rgba(255, 180, 60, 0.9),
+    inset 0 0 6px rgba(255, 230, 150, 0.9);
+}
+
+button#follow.active {
+  color: black;
+  filter:
+
+    drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+
+
 input#BPM {
   width: 100px;
   font-size: 20px;
@@ -160,48 +215,6 @@ input#BPM {
   line-height: 1;
   padding-right: 12px;
 }
-
-/* =========================
-   Second Controls Block
-   ========================= */
-
-/*Volume Knob STJELET FRA https://codepel.com/vanilla-javascript/javascript-knob-slider/  */
-.knob-surround {
-  width: 50px;
-  height: 50px;
-  background-color: #475056;
-  border: 2px solid #273136;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.masterVolumeknob {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #3b444a;
-  position: relative;
-  transform: translate(-50%, -50%) rotate(0deg);
-  top: 50%;
-  left: 50%;
-}
-
-.masterVolumeknob::before {
-  content: "";
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #c5ff4d;
-}
-
-
-
 
 /* =========================
    File Browser
@@ -233,46 +246,187 @@ input#BPM {
    Workspace
    ========================= */
 #workspace {
-  grid-area: workspace;
-  padding-top: 1vw;
+   grid-area: workspace;
   display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  padding-top: 0;
+}
+
+/* =========================
+   Timeline (bar/beat ruler)
+   ========================= */
+#timeline {
+  flex: none;
+  height: var(--timeline-height);
+  display: flex;
+  align-items: stretch;
+  background-color: #5f6a70;
+  border-bottom: 2px solid #3a4c57;
+  overflow: hidden;
+
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
+
+}
+
+#timeline-grid {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  border-left: 2px solid #3a4c57;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(11, 17, 23, 0.12) 50%,
+      rgba(0, 0, 0, 0.00) 50%
+    ),
+    linear-gradient(90deg, rgba(255,255,255,0.24) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px);
+
+  background-size:
+    calc(var(--tick-width) * 384) 100%,
+    calc(var(--tick-width) * 96) 100%,
+    calc(var(--tick-width) * 24) 100%;
+
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+
+  background-repeat:
+    repeat,
+    repeat,
+    repeat;
+}
+
+#timeline-grid .bar-label {
+  
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-size: 12px;
+  color: #def0f7;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* =========================
    Piano Roll
    ========================= */
-#grid {
-  position: relative;
 
+#piano-roll-wrap {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+#note-lane {
+  width: 70px;
+  padding-top: var(--timeline-height);
+  overflow: hidden;
+  flex: none;
+  border-right: 2px solid #3a4c57;
+  background: #202b31;
+  overflow: hidden;
+
+}
+
+.note-label {
+  height: var(--row-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  color: #def0f7;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  user-select: none;
+}
+
+.note-label.black {
+  background: rgba(0,0,0,0.18);
+}
+
+#piano-roll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;   
+  min-width: 0;
+}
+
+
+#grid {
+  display: block;
+  flex: none;
+  position: relative;
   border: 2px #3a4c57 solid;
+
   background:
-      linear-gradient(transparent calc(var(--row-h) - 1px), rgba(255,255,255,.05) 1px),
-      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-  background-size: var(--step-w) var(--row-h);
+
+/* BAR BACKGROUND (every second bar) */
+linear-gradient(
+  90deg,
+  rgba(11, 17, 23, 0.12) 50%,
+  rgba(0, 0, 0, 0.00) 50%
+),
+
+
+    /* BEAT lines: 96 ticks */
+    linear-gradient(90deg, rgba(255,255,255,0.24) 1px, transparent 1px),
+
+    /* STEP lines: 24 ticks */
+    linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px),
+
+
+
+
+
+
+    /* ROW lines */
+    linear-gradient(transparent calc(var(--row-height) - 1px), rgba(255,255,255,0.05) 1px);
+
+  background-size:
+    calc(var(--tick-width) * 384) 100%,
+    calc(var(--tick-width) * 96) 100%,
+    calc(var(--tick-width) * 24) 100%,
+
+    100% var(--row-height);
+
 }
 
 #cursor {
   position: absolute;
   top: 0;
   height: 100%;
-  width: var(--step-w);
-  background: rgba(255, 255, 0, 0.1);
+  width: var(--tick-width);
+  background: rgba(255, 255, 0, 0.15);
   pointer-events: none;
 }
 
 .note {
   position: absolute;
-  width:  calc(var(--step-w) - 2px);  
-  height: calc(var(--row-h) - 2px);  
-
+  height: calc(var(--row-height) - 2px);
+  
   background: #cafdd4;
   cursor: grab;
   box-sizing: border-box;
   z-index: 1;
-  
+
+  width: auto;
+  display: block;
+  max-width: none;
 }
 
 .note.playing {
@@ -281,12 +435,20 @@ input#BPM {
 
 .resize-handle {
   position: absolute;
-  right: 0;
   top: 0;
-  width: 4px;
+  width: 6px;
   height: 100%;
-  background: rgba(255, 255, 255, 0.2);
   cursor: ew-resize;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.resize-handle.left {
+  left: 0;
+}
+
+.resize-handle.right {
+  right: 0;
 }
 
 /* =========================
@@ -298,5 +460,5 @@ footer.hint {
   justify-content: center;
   align-items: center;
   color: white;
-  font-size: 12px;
+  font-size: 1vw;
 }
